@@ -25,9 +25,17 @@ conda activate landslide-data-prep
 
 If you already have a working geospatial environment on this machine, you can also use it directly.
 
-## Configure
+## Quick Start
 
-Edit `config/base.yaml` and set:
+```bash
+git clone <repo-url>
+cd landslide-data-prep
+conda env create -f environment.yml
+conda activate landslide-data-prep
+cp config/base.example.yaml config/base.yaml
+```
+
+Then edit `config/base.yaml` and set:
 
 - `aoi.aoi`
 - `paths.input_dir`
@@ -64,3 +72,10 @@ python scripts/soil_run.py
 ```bash
 python -m pytest -q tests
 ```
+
+## Notes
+
+- `config/base.example.yaml` is the tracked template.
+- `config/base.yaml` is a local working config and is intentionally not tracked.
+- `--raster-only` stops before Landlab-style final layer generation.
+- Use the full run if you want the final `.asc` and `.tif` layer set.

@@ -14,6 +14,10 @@ venv/
 ENV/
 .env
 
+# Local runtime config
+config/base.yaml
+config/*.local.yaml
+
 # Jupyter / IPython
 .ipynb_checkpoints/
 notebook/.ipynb_checkpoints/

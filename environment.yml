@@ -1,4 +1,4 @@
-name: fire-debrisflow-ml
+name: landslide-data-prep
 channels:
   - conda-forge
 dependencies:
@@ -14,9 +14,4 @@ dependencies:
   - pyproj
   - landlab
   - bmi-topography
-  - scikit-learn
-  - matplotlib
-  - joblib
-  - xgboost
-  - pytorch
   - pytest

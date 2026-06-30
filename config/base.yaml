@@ -2,14 +2,15 @@
 # Spatial inputs / AOI
 # ----------------------------
 aoi:
-  aoi: /abs/path/to/aoi.shp
+  aoi: /mnt/c/Users/amehedi/Downloads/eaglecreek/eaglecreek.shp
 
-# ----------------------------
+# ------------------
+# ----------
 # Data directories
 # ----------------------------
 paths:
-  input_dir: /abs/path/to/project_inputs
-  output_dir: /abs/path/to/project_outputs
+  input_dir: /mnt/c/Users/amehedi/Downloads/eaglecreek
+  output_dir: /mnt/c/Users/amehedi/Downloads/eaglecreek/output
 
 # ----------------------------
 # Model inputs (feature switches)
@@ -31,51 +32,45 @@ inputs:
 # ----------------------------
 target:
   variable: debris_flow
-  type: binary
+  type: binary        # binary | continuous
   positive_value: 1
 
 # ----------------------------
 # Raster processing
 # ----------------------------
 raster:
-  target_res: 10
+  target_res: 10   # meters
   resampling_method: bilinear
 
 # ----------------------------
 # Fire metadata
 # ----------------------------
 fire:
-  name: Example Fire
-  id: ST0000000000000000000
+  name: Bolt Creek
+  id: WA4772812134620220910
   state: WA
-  year: 2022
+  year: 2022 #2022
 
 # ----------------------------
-# DEM source
+# DEM (USGS 10m via bmi-topography)
 # ----------------------------
 dem:
-  # Use one of:
-  # source: bmi-topography
-  # source: local
   source: bmi-topography
   dem_type: USGS10m
   output_format: GTiff
   buffer_deg: 0.05
-  cache_dir: /abs/path/to/cache
-  api_key: ""
-
-  # Required only when source=local
-  # path: /abs/path/to/local_dem.tif
+  cache_dir: /mnt/c/Users/amehedi/Downloads/ml_debris/output/cache
+  api_key: ""   # optional; can also be provided via USGS_TOPO_API_KEY env var
 
 # ----------------------------
 # Burn severity (selectable source)
 # ----------------------------
 burn_severity:
-  source: remote_then_local
+  source: remote_then_local        # local | remote | remote_then_local | auto
 
   local:
-    path: /abs/path/to/local_burn_dir
-    filename: burn_severity.tif
+    path: /mnt/c/Users/amehedi/Downloads/ml_debris/input
+    filename: pioneer_wa4818312053120240608_sbs.tif
     resampling: nearest
 
   remote:
@@ -88,7 +83,7 @@ burn_severity:
 # ----------------------------
 # Other feature rasters
 # ----------------------------
-feature_sources:
+feature_sources: 
   rasters:
     cec7_0_cm:
       url: https://storage.googleapis.com/solus100pub/cec7_0_cm_p.tif

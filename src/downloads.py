@@ -31,6 +31,31 @@ def download_file(
 
 
 def extract_first_tif(zip_path: str, extract_dir: str) -> str:
+    return _extract_and_list_tifs(zip_path, extract_dir)[0]
+
+
+def extract_tif_by_suffix(zip_path: str, extract_dir: str, suffix: str) -> str:
+    """Extract a zip and return the .tif whose name ends with `suffix`.
+
+    BAER "preliminary" bundles contain multiple .tif files (dNBR plus
+    pre/post reflectance composites) - picking "the first tif" is not
+    reliable, so callers that know the product they want (e.g. "_dnbr.tif")
+    should use this instead of extract_first_tif.
+    """
+    tif_paths = _extract_and_list_tifs(zip_path, extract_dir)
+    matches = [
+        p
+        for p in tif_paths
+        if os.path.basename(p).lower().endswith(suffix.lower())
+    ]
+    if not matches:
+        raise FileNotFoundError(
+            f"No .tif ending in {suffix!r} inside {zip_path}. Found: {tif_paths}"
+        )
+    return matches[0]
+
+
+def _extract_and_list_tifs(zip_path: str, extract_dir: str) -> list[str]:
     if os.path.exists(extract_dir):
         import shutil
 
@@ -49,4 +74,4 @@ def extract_first_tif(zip_path: str, extract_dir: str) -> str:
     if not tif_paths:
         raise FileNotFoundError(f"No .tif found inside {zip_path}")
 
-    return tif_paths[0]
+    return tif_paths

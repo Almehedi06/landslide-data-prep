@@ -43,6 +43,10 @@ Then edit `config/base.yaml` and set:
 - `dem.cache_dir`
 - local burn severity path if you use local fallback
 
+Continuous dNBR is optional. Keep `dnbr.enabled: false` to skip its download and
+Landlab field generation. Set it to `true` only after configuring a valid local
+file or remote BAER post-image date.
+
 ## Run
 
 Raster-only debug run:

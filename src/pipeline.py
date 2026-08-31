@@ -11,7 +11,7 @@ import rasterio
 import yaml
 
 from dem import fetch_dem
-from downloads import download_file, extract_first_tif
+from downloads import download_file, extract_first_tif, extract_tif_by_suffix
 from landlab_io import add_ascii_field, load_grid, read_nodata_value, write_ascii_field
 from preflight import (
     ensure_output_dir_writable,
@@ -50,6 +50,7 @@ class SourceSpec:
     uri: str | list[str]
     resampling: str
     unzip: bool = False
+    tif_suffix: str | None = None
 
 
 @dataclass(frozen=True)
@@ -184,6 +185,59 @@ def build_sources_from_config(cfg: dict) -> list[SourceSpec]:
             f"{src!r}. Expected one of: local, remote, remote_then_local, auto."
         )
 
+    dn = cfg.get("dnbr", {})
+    if dn and dn.get("enabled", True):
+        dn_src = dn.get("source", "local").lower()
+        dn_local_path = os.path.join(dn["local"]["path"], dn["local"]["filename"])
+
+        if dn_src == "local":
+            sources.append(
+                SourceSpec(
+                    key="dnbr",
+                    uri=dn_local_path,
+                    resampling=dn["local"].get("resampling", "bilinear"),
+                )
+            )
+        elif dn_src in {"remote", "remote_then_local", "auto"}:
+            base_url = dn["remote"]["base_url"]
+            fire_name_fmt = cfg["fire"]["name"].lower().replace(" ", "_")
+            fire_id_fmt = cfg["fire"]["id"].lower()
+            post_date_fmt = cfg["fire"].get("post_image_date", "")
+            if not post_date_fmt:
+                raise ValueError(
+                    "dnbr.source is remote/auto but fire.post_image_date is not set "
+                    "(needed to build the BAER preliminary-data filename, e.g. "
+                    "'20240829' from the fire's BAER metadata)."
+                )
+            dn_remote_candidates = [
+                pattern.format(
+                    base_url=base_url,
+                    fire_name_fmt=fire_name_fmt,
+                    fire_id_fmt=fire_id_fmt,
+                    post_date_fmt=post_date_fmt,
+                )
+                for pattern in dn["remote"]["candidates"]
+            ]
+            dn_all_candidates = (
+                dn_remote_candidates + [dn_local_path]
+                if dn_src in {"remote_then_local", "auto"}
+                else dn_remote_candidates
+            )
+            sources.append(
+                SourceSpec(
+                    key="dnbr",
+                    uri=dn_all_candidates,
+                    resampling=dn["remote"].get("resampling", "bilinear"),
+                    unzip=True,
+                    tif_suffix="_dnbr.tif",
+                )
+            )
+        else:
+            raise ValueError(
+                "Unsupported dnbr.source="
+                f"{dn_src!r}. Expected one of: local, remote, remote_then_local, auto."
+            )
+
     return sources
 
 
@@ -197,6 +251,8 @@ def _resolve_single_source(spec: SourceSpec, output_dir: str) -> str:
         download_file(uri, local_path)
         if uri.lower().endswith(".zip") or spec.unzip:
             extract_dir = os.path.join(output_dir, f"unzipped_{spec.key}")
+            if spec.tif_suffix:
+                return extract_tif_by_suffix(local_path, extract_dir, spec.tif_suffix)
             return extract_first_tif(local_path, extract_dir)
         return local_path
 
@@ -205,6 +261,8 @@ def _resolve_single_source(spec: SourceSpec, output_dir: str) -> str:
 
     if uri.lower().endswith(".zip"):
         extract_dir = os.path.join(output_dir, f"unzipped_{spec.key}")
+        if spec.tif_suffix:
+            return extract_tif_by_suffix(uri, extract_dir, spec.tif_suffix)
         return extract_first_tif(uri, extract_dir)
 
     return uri
@@ -221,6 +279,7 @@ def resolve_source_to_tif(spec: SourceSpec, output_dir: str) -> str:
                         uri=candidate,
                         resampling=spec.resampling,
                         unzip=spec.unzip,
+                        tif_suffix=spec.tif_suffix,
                     ),
                     output_dir,
                 )
@@ -370,6 +429,10 @@ def run_landlab_pipeline(cfg: dict, outputs: dict, strict: bool = True):
             transform=_burn_transform,
         ),
     }
+
+    dn = cfg.get("dnbr", {})
+    if dn and dn.get("enabled", True):
+        field_map["dnbr"] = FieldSpec("dnbr", "burn__dnbr")
 
     for source_key, spec in field_map.items():
         if source_key not in outputs:

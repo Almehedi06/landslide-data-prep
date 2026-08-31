@@ -18,7 +18,7 @@ inputs:
   soil:
     k_factor: true
   burn:
-    index: dNBR
+    index: burn_severity
   topography:
     elevation: true
     slope: true
@@ -49,6 +49,8 @@ fire:
   id: ST0000000000000000000
   state: WA
   year: 2022
+  post_image_date: ""   # YYYYMMDD; required only when dnbr.enabled=true and
+                         # dnbr.source is remote, remote_then_local, or auto
 
 # ----------------------------
 # DEM source
@@ -84,6 +86,25 @@ burn_severity:
       - "{base_url}{fire_name_fmt}_sbs.zip"
       - "{base_url}{fire_name_fmt}_{fire_id_fmt}_sbs.zip"
     resampling: nearest
+
+# ----------------------------
+# Continuous dNBR (BAER "preliminary" bundle - differs from burn_severity's
+# categorical SBS product above; same archive host, different zip/product)
+# ----------------------------
+dnbr:
+  enabled: false
+  source: remote_then_local
+
+  local:
+    path: /abs/path/to/local_burn_dir
+    filename: dnbr.tif
+    resampling: bilinear
+
+  remote:
+    base_url: https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/MTBS_Fire/data/baer/
+    candidates:
+      - "{base_url}{fire_name_fmt}_{fire_id_fmt}_{post_date_fmt}_preliminary.zip"
+    resampling: bilinear
 
 # ----------------------------
 # Other feature rasters

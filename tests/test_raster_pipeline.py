@@ -13,7 +13,11 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from pipeline import run_landlab_pipeline, run_raster_pipeline
+from pipeline import (
+    build_sources_from_config,
+    run_landlab_pipeline,
+    run_raster_pipeline,
+)
 from reproject_and_resample import clip_raster_to_shape, convert_to_ascii, read_ascii_header
 
 
@@ -161,6 +165,7 @@ def test_main_pipeline_local_smoke(tmp_path: Path) -> None:
                 "resampling": "nearest",
             },
         },
+        "dnbr": {"enabled": False},
         "feature_sources": {
             "rasters": {
                 key: {
@@ -183,6 +188,7 @@ def test_main_pipeline_local_smoke(tmp_path: Path) -> None:
     grid = run_landlab_pipeline(cfg, outputs)
 
     assert "soil__thickness" in grid.at_node
+    assert "burn__dnbr" not in grid.at_node
     assert np.isclose(float(np.mean(grid.at_node["soil__thickness"][grid.core_nodes])), 2.0)
 
     expected_files = [
@@ -191,6 +197,29 @@ def test_main_pipeline_local_smoke(tmp_path: Path) -> None:
         out_dir / "landcover.asc",
         out_dir / "soil__transmissivity.asc",
         out_dir / "vegetation__plant_functional_type.asc",
+        out_dir / "soil__minimum_total_cohesion.asc",
+        out_dir / "soil__mode_total_cohesion.asc",
+        out_dir / "soil__maximum_total_cohesion.asc",
     ]
     for path in expected_files:
         assert path.exists(), f"Missing output: {path}"
+
+
+def test_disabled_dnbr_needs_no_source_configuration() -> None:
+    cfg = {
+        "raster": {"resampling_method": "bilinear"},
+        "fire": {"name": "Test Fire", "id": "TEST000"},
+        "burn_severity": {
+            "source": "local",
+            "local": {
+                "path": "/tmp",
+                "filename": "burn.tif",
+                "resampling": "nearest",
+            },
+        },
+        "dnbr": {"enabled": False},
+    }
+
+    source_keys = {spec.key for spec in build_sources_from_config(cfg)}
+
+    assert "dnbr" not in source_keys
